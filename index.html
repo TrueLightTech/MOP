@@ -1,4 +1,4 @@
-<!-- Full HTML with real-time adjustable building and impact simulation -->
+<!-- Full HTML with realistic collapsing top and fire blast -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -163,24 +163,17 @@
       const destroyCount = Math.floor(damageRatio * buildingParts.length);
 
       fireball = new THREE.Mesh(
-        new THREE.SphereGeometry(6, 32, 32),
-        new THREE.MeshStandardMaterial({ color: 0xff4400, emissive: 0xff2200, emissiveIntensity: 1 })
+        new THREE.SphereGeometry(10, 32, 32),
+        new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xff3300, emissiveIntensity: 2, transparent: true, opacity: 0.8 })
       );
       fireball.position.copy(impactPos);
       scene.add(fireball);
 
-      lightFlash = new THREE.PointLight(0xffaa33, 5, 60);
+      lightFlash = new THREE.PointLight(0xffaa33, 6, 100);
       lightFlash.position.copy(impactPos);
       scene.add(lightFlash);
 
-      const shockwave = new THREE.Mesh(
-        new THREE.RingGeometry(1, 2.5, 32),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide })
-      );
-      shockwave.rotation.x = -Math.PI / 2;
-      shockwave.position.set(impactPos.x, 0.1, impactPos.z);
-      scene.add(shockwave);
-
+      const debrisYShift = 1;
       for (let i = 0; i < destroyCount && i < buildingParts.length; i++) {
         const part = buildingParts[i];
         scene.remove(part);
@@ -203,13 +196,18 @@
         targetDebris.push(debris);
       }
 
-      buildingParts = buildingParts.slice(destroyCount);
+      // Re-stack remaining parts downward
+      const remaining = buildingParts.slice(destroyCount);
+      buildingParts = [];
+      remaining.forEach((block, idx) => {
+        block.position.y = 1 + idx * 2;
+        buildingParts.push(block);
+      });
 
       setTimeout(() => {
         scene.remove(fireball);
         scene.remove(lightFlash);
-        scene.remove(shockwave);
-      }, 4000);
+      }, 3000);
     }
   </script>
 </body>
