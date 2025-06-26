@@ -1,33 +1,21 @@
-<!-- Full HTML with realistic collapsing top and fire blast -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GBU-57 Bomb Impact Simulation</title>
+  <title>GBU-57 MOP Bomb Simulation</title>
   <style>
-    body { margin: 0; overflow: hidden; font-family: sans-serif; background-color: #87CEEB; }
+    body { margin: 0; overflow: hidden; font-family: sans-serif; background: #87CEEB; }
     #ui {
       position: absolute; top: 20px; left: 20px; z-index: 10;
-      background: rgba(0, 0, 0, 0.6); padding: 10px; border-radius: 6px; color: white;
+      background: rgba(0,0,0,0.6); padding: 10px; border-radius: 6px; color: white;
     }
-    button, input, label { display: block; margin: 5px 0; }
+    label, input, button { display: block; margin: 5px 0; }
+    input { width: 80px; }
     button {
-      background-color: #444; color: #fff; border: none;
-      padding: 10px 15px; font-size: 14px; border-radius: 5px; cursor: pointer;
+      background: #333; color: #fff; padding: 8px 12px; border: none;
+      border-radius: 4px; cursor: pointer;
     }
-    button:hover { background-color: #666; }
-    input { width: 60px; }
   </style>
-</head>
-<body>
-  <div id="ui">
-    <label>Building Height (feet): <input type="number" id="buildingHeight" value="20"></label>
-    <label>Building Width (feet): <input type="number" id="buildingWidth" value="20"></label>
-    <label>Building Thickness (feet): <input type="number" id="buildingDepth" value="20"></label>
-    <label>Bomb Weight (lbs): <input type="number" id="bombWeight" value="2000"></label>
-    <button id="drop">Drop GBU-57</button>
-  </div>
   <script type="importmap">
     {
       "imports": {
@@ -36,6 +24,15 @@
       }
     }
   </script>
+</head>
+<body>
+  <div id="ui">
+    <label>Building Height (feet): <input type="number" id="buildingHeight" value="20"></label>
+    <label>Building Width (feet): <input type="number" id="buildingWidth" value="20"></label>
+    <label>Building Depth (feet): <input type="number" id="buildingDepth" value="20"></label>
+    <label>Bomb Weight (lbs): <input type="number" id="bombWeight" value="30000"></label>
+    <button id="drop">Drop Bomb</button>
+  </div>
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -53,13 +50,16 @@
 
     function init() {
       scene = new THREE.Scene();
-      scene.fog = new THREE.Fog(0x87CEEB, 300, 1500);
       scene.background = new THREE.Color(0x87CEEB);
-      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+      scene.fog = new THREE.Fog(0x87CEEB, 300, 1500);
+
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
       camera.position.set(100, 150, 300);
+
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
+
       controls = new OrbitControls(camera, renderer.domElement);
       controls.maxDistance = 1000;
       controls.target.set(0, 50, 0);
@@ -84,7 +84,7 @@
       ground.receiveShadow = true;
       scene.add(ground);
 
-      ['buildingHeight','buildingWidth','buildingDepth'].forEach(id => {
+      ['buildingHeight', 'buildingWidth', 'buildingDepth'].forEach(id => {
         document.getElementById(id).addEventListener('input', () => {
           buildingHeight = parseFloat(document.getElementById('buildingHeight').value);
           buildingWidth = parseFloat(document.getElementById('buildingWidth').value);
@@ -93,122 +93,132 @@
         });
       });
 
-      document.getElementById('drop').addEventListener('click', dropBomb);
-    }
-
-    function createBuilding() {
-      buildingParts.forEach(part => scene.remove(part));
-      buildingParts = [];
-      const layers = Math.floor(buildingHeight / 2);
-      for (let i = 0; i < layers; i++) {
-        const geo = new THREE.BoxGeometry(buildingWidth, 2, buildingDepth);
-        const mat = new THREE.MeshStandardMaterial({ color: 0x884444 });
-        const block = new THREE.Mesh(geo, mat);
-        block.position.set(0, 1 + i * 2, 0);
-        scene.add(block);
-        buildingParts.push(block);
-      }
-    }
-
-    function dropBomb() {
-      if (falling) return;
-      const mat = new THREE.MeshStandardMaterial({ color: 0x3333cc });
-      const bodyGeo = new THREE.CylinderGeometry(0.5, 0.5, 8, 16);
-      const tipGeo = new THREE.ConeGeometry(0.5, 1.5, 16);
-      const finGeo = new THREE.BoxGeometry(0.1, 1.5, 0.5);
-      const body = new THREE.Mesh(bodyGeo, mat);
-      const tip = new THREE.Mesh(tipGeo, mat);
-      tip.position.y = 4.75;
-      const fins = new THREE.Group();
-      for (let j = 0; j < 4; j++) {
-        const fin = new THREE.Mesh(finGeo, mat);
-        fin.position.set(0, -4, 0.5);
-        fin.rotation.y = Math.PI / 2 * j;
-        fins.add(fin);
-      }
-      bomb = new THREE.Group();
-      bomb.add(body);
-      bomb.add(tip);
-      bomb.add(fins);
-      bomb.position.set(0, 400, 0);
-      scene.add(bomb);
-      falling = true;
-    }
-
-    function animate() {
-      requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      if (falling && bomb) {
-        bomb.position.y -= delta * 100;
-        if (bomb.position.y <= 5) {
-          createImpact(bomb);
-          scene.remove(bomb);
-          bomb = null;
-          falling = false;
+      document.getElementById('drop').addEventListener('click', () => {
+        if (falling) return;
+        const mat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.6, roughness: 0.4 });
+        const bombGroup = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 10, 32), mat);
+        const nose = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2, 32), mat);
+        nose.position.y = 6;
+        const finGeo = new THREE.BoxGeometry(0.1, 1, 2);
+        const finMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
+        for (let i = 0; i < 4; i++) {
+          const fin = new THREE.Mesh(finGeo, finMat);
+          fin.position.set(Math.cos(i * Math.PI / 2) * 0.7, -5, Math.sin(i * Math.PI / 2) * 0.7);
+          fin.rotation.y = i * Math.PI / 2;
+          bombGroup.add(fin);
         }
-      }
-      targetDebris.forEach(piece => {
-        piece.position.add(piece.userData.velocity.clone().multiplyScalar(delta));
-        piece.rotation.x += piece.userData.rotation.x * delta;
-        piece.rotation.y += piece.userData.rotation.y * delta;
+        bombGroup.add(body);
+        bombGroup.add(nose);
+        bombGroup.position.set(0, 400, 0);
+        scene.add(bombGroup);
+        window.bomb = bombGroup;
+        falling = true;
       });
-      renderer.render(scene, camera);
     }
 
-    function createImpact(bomb) {
-      const impactPos = bomb.position.clone();
-      const weight = parseFloat(document.getElementById('bombWeight').value);
-      const volume = buildingWidth * buildingHeight * buildingDepth;
-      const damageRatio = Math.min(weight / (volume / 2), 1);
-      const destroyCount = Math.floor(damageRatio * buildingParts.length);
+    
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = clock.getDelta();
 
-      fireball = new THREE.Mesh(
-        new THREE.SphereGeometry(10, 32, 32),
-        new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xff3300, emissiveIntensity: 2, transparent: true, opacity: 0.8 })
-      );
-      fireball.position.copy(impactPos);
-      scene.add(fireball);
-
-      lightFlash = new THREE.PointLight(0xffaa33, 6, 100);
-      lightFlash.position.copy(impactPos);
-      scene.add(lightFlash);
-
-      const debrisYShift = 1;
-      for (let i = 0; i < destroyCount && i < buildingParts.length; i++) {
-        const part = buildingParts[i];
-        scene.remove(part);
-        const debris = new THREE.Mesh(
-          new THREE.BoxGeometry(1, 0.5, 0.5),
-          new THREE.MeshStandardMaterial({ color: 0xaa0000 })
-        );
-        debris.position.copy(part.position);
-        debris.userData.velocity = new THREE.Vector3(
-          (Math.random() - 0.5) * 25,
-          Math.random() * 20,
-          (Math.random() - 0.5) * 25
-        );
-        debris.userData.rotation = new THREE.Vector3(
-          Math.random() * 2,
-          Math.random() * 2,
-          Math.random() * 2
-        );
-        scene.add(debris);
-        targetDebris.push(debris);
-      }
-
-      // Re-stack remaining parts downward
-      const remaining = buildingParts.slice(destroyCount);
-      buildingParts = [];
-      remaining.forEach((block, idx) => {
-        block.position.y = 1 + idx * 2;
-        buildingParts.push(block);
-      });
-
-      setTimeout(() => {
-        scene.remove(fireball);
-        scene.remove(lightFlash);
-      }, 3000);
+  if (falling && window.bomb) {
+    window.bomb.position.y -= delta * 100;
+    if (window.bomb.position.y <= 5) {
+      createImpact(window.bomb);
+      scene.remove(window.bomb);
+      window.bomb = null;
+      falling = false;
     }
+  }
+
+  targetDebris.forEach(piece => {
+    piece.position.add(piece.userData.velocity.clone().multiplyScalar(delta));
+    piece.rotation.x += piece.userData.rotation.x * delta;
+    piece.rotation.y += piece.userData.rotation.y * delta;
+  });
+
+  renderer.render(scene, camera);
+}
+
+function createBuilding() {
+  buildingParts.forEach(part => scene.remove(part));
+  buildingParts = [];
+  const layers = Math.floor(buildingHeight / 2);
+  for (let i = 0; i < layers; i++) {
+    const geo = new THREE.BoxGeometry(buildingWidth, 2, buildingDepth);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x884444 });
+    const block = new THREE.Mesh(geo, mat);
+    block.position.set(0, 1 + i * 2, 0);
+    scene.add(block);
+    buildingParts.push(block);
+  }
+}
+
+function createImpact(bomb) {
+  const impactPos = bomb.position.clone();
+  const weight = parseFloat(document.getElementById('bombWeight').value);
+  const volume = buildingWidth * buildingHeight * buildingDepth;
+
+  const kg = weight * 0.453592;
+  const velocity = 350;
+  const energyJoules = 0.5 * kg * velocity * velocity;
+  const energyPerVolume = energyJoules / (volume * 0.0283168);
+  const damageRatio = Math.min(energyPerVolume / 100000, 1);
+  const destroyCount = Math.floor(damageRatio * buildingParts.length);
+
+  const fireball = new THREE.Mesh(
+    new THREE.SphereGeometry(10, 32, 32),
+    new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xff3300, emissiveIntensity: 2, transparent: true, opacity: 0.8 })
+  );
+  fireball.position.copy(impactPos);
+  scene.add(fireball);
+
+  const lightFlash = new THREE.PointLight(0xffaa33, 6, 100);
+  lightFlash.position.copy(impactPos);
+  scene.add(lightFlash);
+
+  for (let i = 0; i < destroyCount && i < buildingParts.length; i++) {
+    const part = buildingParts[i];
+    scene.remove(part);
+    const debris = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 0.5, 0.5),
+      new THREE.MeshStandardMaterial({ color: 0xaa0000 })
+    );
+    debris.position.copy(part.position);
+    debris.userData.velocity = new THREE.Vector3(
+      (Math.random() - 0.5) * 25,
+      Math.random() * 20,
+      (Math.random() - 0.5) * 25
+    );
+    debris.userData.rotation = new THREE.Vector3(
+      Math.random() * 2,
+      Math.random() * 2,
+      Math.random() * 2
+    );
+    scene.add(debris);
+    targetDebris.push(debris);
+  }
+
+  const remaining = buildingParts.slice(destroyCount);
+  buildingParts = [];
+  remaining.forEach((block, idx) => {
+    block.position.y = 1 + idx * 2;
+    buildingParts.push(block);
+  });
+
+  setTimeout(() => {
+    scene.remove(fireball);
+    scene.remove(lightFlash);
+  }, 3000);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
   </script>
 </body>
 </html>
